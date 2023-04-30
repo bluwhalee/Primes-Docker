@@ -1,26 +1,47 @@
 const express = require('express');
-const primes = require('primes');
-const ps = require('ps-node');
 const app = express();
 const PORT = process.env.PORT || 3000;
-const os = require('os');
 const { promisify } = require('util');
 const exec = promisify(require('child_process').exec);
 
+function formatDate(date) {
+  return Math.floor(date.getTime() / 1000);
+}
+
+
+
 async function monitor(k) {
-    const now = new Date().getTime();
-    const startTime = new Date(now - k * 60 * 1000).toISOString().replace('T', ' ').slice(0, -5);
-  
-    try {
-      const { stdout: cpuUsage } = await exec(`typeperf "\\Processor(_Total)\\% Processor Time" -sc 1 -si ${k * 60}`);
-      const { stdout: memoryUsage } = await exec(`typeperf "\\Memory\\Available Bytes" -sc 1 -si ${k * 60}`);
-      
-      return { cpuUsage, memoryUsage };
-    } catch (err) {
-      console.error(`Error monitoring system resources: ${err.message}`);
-      return null;
-    }
+  if (isNaN(k)) {
+    console.error(`Error monitoring system resources: invalid input value for k`);
+    return null;
   }
+
+  const now = new Date();
+  const startTime = new Date(now - k * 60 * 1000);
+
+  try {
+    const { stdout: cpuUsage } = await exec(`top -l 1 -F -R -o cpu -U $(whoami) -stats pid,command,cpu,time -s 5 -S ${formatDate(startTime)}`);
+    const { stdout: memoryUsage } = await exec(`top -l 1 -F -R -o mem -U $(whoami) -stats pid,command,mem,time -s 5 -S ${formatDate(startTime)}`);
+    
+    const cpuData = cpuUsage.trim().split('\n').slice(1).map(line => {
+      const [pid, command, cpu, time] = line.trim().split(/\s+/);
+      return { pid, command, cpu: parseFloat(cpu), time: parseFloat(time) };
+    });
+
+    const memoryData = memoryUsage.trim().split('\n').slice(1).map(line => {
+      const [pid, command, mem, time] = line.trim().split(/\s+/);
+      return { pid, command, mem: parseFloat(mem), time: parseFloat(time) };
+    });
+
+    const cpuUsageAvg = cpuData.reduce((acc, curr) => acc + curr.cpu, 0) / cpuData.length;
+    const memoryUsageAvg = memoryData.reduce((acc, curr) => acc + curr.mem, 0) / memoryData.length;
+
+    return { cpuUsage: `${cpuUsageAvg.toFixed(2)}%`, memoryUsage: `${memoryUsageAvg.toFixed(2)}%` };
+  } catch (err) {
+    console.error(`Error monitoring system resources: ${err.message}`);
+    return null;
+  }
+}
 
 let primeNumbers = [];
 
@@ -66,8 +87,14 @@ app.get('/get', (req, res) => {
 
 // monitor endpoint
 app.post('/monitor', async (req, res) => {
+  
   const { k } = req.body;
+  const startTime = new Date();
+  const currentTime = new Date();
+  const elapsed = (currentTime - startTime) / 1000 / 60; // elapsed time in minutes
+  
   const { cpuUsage, memoryUsage } = await monitor(k);
+  
   res.json({ cpuUsage, memoryUsage });
 
 
