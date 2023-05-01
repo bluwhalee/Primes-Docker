@@ -1,11 +1,10 @@
 {
   "dependencies": {
+    "@root/async-router": "^1.0.12",
     "express": "^4.18.2",
-    "pidusage": "^3.0.2",
-    "primes": "^0.0.1",
-    "ps-node": "^0.1.6"
+    "pidusage": "^3.0.2"
   },
-  "devDependencies": {
-    "nodemon": "^2.0.22"
+  "scripts": {
+    "start": "node app.js"
   }
 }
