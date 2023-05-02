@@ -17,6 +17,30 @@ let primeNumbers = [];
 
 app.use(express.json());
 
+async function getPrimesInRange(start, end) {
+  let primes = [];
+
+  for (let num = start; num <= end; num++) {
+    let isPrime = true;
+
+    for (let i = 2; i <= Math.sqrt(num); i++) {
+      if (num % i === 0) {
+        isPrime = false;
+        break;
+      }
+    }
+
+    if (isPrime && num > 1) {
+      console.log(num);
+      primes.push(num);
+      if (!primeNumbers.includes(num)) {
+        primeNumbers.push(num);
+      }
+    }
+  }
+  console.log(primes)
+  return primes;
+}
 async function getStats()
 {
   // const stats = await cpuUsage(process.pid);
@@ -48,10 +72,9 @@ setInterval(getStats,60000)
 app.post('/generate', async (req, res) => {
   const { from, to } = req.body;
 
-  // generate prime numbers in the background
-  // let primes = await getPrimesInRange(from, to);
-  var cmd = "node primeFunc.js "+from+" "+to;
-  primes = exec(cmd,(error)=>{console.log(error)})
+  //generate prime numbers in the background
+  let primes = await getPrimesInRange(from, to);
+  
   res.json({ status: 'success' });
 });
 
