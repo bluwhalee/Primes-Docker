@@ -1,4 +1,5 @@
 const fs = require('fs');
+const cluster = require("cluster");
 const totalCPUs = require('os').cpus().length;
 const express = require('express');
 const os = require('os');
@@ -11,11 +12,12 @@ const port = 3001;
 const { useCustomLoadavg } = require('loadavg-windows');
 const cpu = require('windows-cpu');
 const util = require('util');
+const file = 'numbers.txt';
 // const cpuUsage = util.promisify(pidusage.stat);
 
 let primeNumbers = [];
 
-app.use(express.json());
+
 
 async function getPrimesInRange(start, end) {
   let primes = [];
@@ -33,14 +35,17 @@ async function getPrimesInRange(start, end) {
     if (isPrime && num > 1) {
       console.log(num);
       primes.push(num);
-      if (!primeNumbers.includes(num)) {
+      
+      if (!primeNumbers.includes(num)){
         primeNumbers.push(num);
+        fs.appendFileSync(file, num.toString() + '\n');
       }
     }
   }
   console.log(primes)
   return primes;
 }
+
 async function getStats()
 {
   // const stats = await cpuUsage(process.pid);
@@ -59,15 +64,35 @@ async function getStats()
   var obj = {}
   obj.cpuUsage = percentage;
   obj.memUsage = memoryUsage;
-  obj.timeStamp = Date.now();
+  var today = new Date();
+  var date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
+  var time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+  var dateTime = date+' '+time;
+  obj.timeStamp = dateTime;
   logArray.push(obj);
   fs.writeFile('usagelog.json', JSON.stringify(logArray), function (err) {
     if (err) throw err;
     console.log('Saved!');
   });
 }
-getStats();
+
 setInterval(getStats,60000)
+if (cluster.isMaster) {
+  console.log(`Number of CPUs is ${totalCPUs}`);
+  console.log(`Master ${process.pid} is running`);
+  setInterval(getStats,60000)
+  // Fork workers.
+  for (let i = 0; i < totalCPUs; i++) {
+    cluster.fork();
+  }
+ 
+  cluster.on("exit", (worker, code, signal) => {
+    console.log(`worker ${worker.process.pid} died`);
+    console.log("Let's fork another worker!");
+    cluster.fork();
+  });
+} else {
+app.use(express.json());
 // generate endpoint
 app.post('/generate', async (req, res) => {
   const { from, to } = req.body;
@@ -80,7 +105,9 @@ app.post('/generate', async (req, res) => {
 
 // get endpoint
 app.get('/get', (req, res) => {
-  res.json({ primes: primeNumbers });
+  const data = fs.readFileSync(file, 'utf8');
+  const numbers = data.trim().split('\n').map(Number);
+  res.json({ primes: numbers });
 });
 
 // monitor endpoint
@@ -107,6 +134,6 @@ app.post('/monitor', async (req, res) => {
 app.listen(port, () => {
   console.log(`App listening on port ${port}`);
 });
-
+}
 
 

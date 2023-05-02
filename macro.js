@@ -20,7 +20,8 @@ async function logResourceUtilization(url, duration, filePath) {
     const startTime = new Date(now - duration * 60 * 1000);
     const response = await axios.post(`${url}/monitor`, { k: duration });
     const cpu = response.data.cpuUsage;
-    const memory = response.data.memoryUsage;
+    const memory = response.data.memUsage;
+    console.log(memory,cpu)
     const timestamp = now.toLocaleString();
     const csv = `${timestamp},${cpu},${memory}\n`;
     fs.appendFileSync(filePath, csv);
@@ -31,11 +32,12 @@ async function getLatestPrimeNumbers(pngmUrls) {
     for (const url of pngmUrls) {
         const response = await axios.get(`${url}/get`);
         allPrimes = allPrimes.concat(response.data.primes);
+        console.log(allPrimes)
     }
 
     const uniquePrimes = [...new Set(allPrimes)];
     const sortedPrimes = uniquePrimes.sort((a, b) => a - b);
-    console.log(sortedPrimes)
+    //console.log(sortedPrimes)
     return sortedPrimes;
 }
   
