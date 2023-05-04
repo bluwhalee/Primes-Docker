@@ -18,7 +18,7 @@ const part3End = rangeEnd;
 async function logResourceUtilization(url, duration, filePath) {
     const now = new Date();
     const startTime = new Date(now - duration * 60 * 1000);
-    const response = await axios.post(`${url}/monitor`, { k: duration });
+    const response = await axios.post(`${url}/monitor/${duration}`);
     const cpu = response.data.cpuUsage;
     const memory = response.data.memUsage;
     console.log(memory,cpu)
@@ -50,9 +50,9 @@ const containerUrls = [
 
 // Call the generate method on each container with its assigned range
 Promise.all([
-  axios.post(`${containerUrls[0]}/generate`, { from: part1Start, to: part1End }),
-  axios.post(`${containerUrls[1]}/generate`, { from: part2Start, to: part2End }),
-  axios.post(`${containerUrls[2]}/generate`, { from: part3Start, to: part3End })
+  axios.post(`${containerUrls[0]}/generate/${part1Start}/${part1End}`),
+  axios.post(`${containerUrls[1]}/generate/${part2Start}/${part2End}`),
+  axios.post(`${containerUrls[2]}/generate/${part3Start}/${part3End}`)
 ]).then(() => {
   console.log('Generation completed');
 }).catch((error) => {
@@ -65,4 +65,4 @@ setInterval(()=>{
 },60000)
 setInterval(()=>{
     (getLatestPrimeNumbers(containerUrls));
-},6000)
+},120000)
