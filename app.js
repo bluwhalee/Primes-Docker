@@ -89,4 +89,4 @@ app.listen(port, () => {
 });
 
 
-setInterval(()=>{getStats()}, 600)
+setInterval(()=>{getStats()}, 60000)

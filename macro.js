@@ -21,7 +21,6 @@ async function logResourceUtilization(url, duration, filePath) {
     const response = await axios.post(`${url}/monitor/${duration}`);
     const cpu = response.data.cpuUsage;
     const memory = response.data.memUsage;
-    console.log(memory,cpu)
     const timestamp = now.toLocaleString();
     const csv = `${timestamp},${cpu},${memory}\n`;
     fs.appendFileSync(filePath, csv);
